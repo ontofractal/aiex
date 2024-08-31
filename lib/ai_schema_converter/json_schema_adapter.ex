@@ -19,17 +19,13 @@ defmodule AIex.AISchemaConverter.JSONSchemaAdapter do
     }
   end
 
-  defp field_to_json_schema(:string), do: %{"type" => "string"}
-  defp field_to_json_schema(:integer), do: %{"type" => "integer"}
-  defp field_to_json_schema(:float), do: %{"type" => "number"}
-  defp field_to_json_schema(:boolean), do: %{"type" => "boolean"}
+  defp field_to_json_schema(:string), do: "string"
+  defp field_to_json_schema(:integer), do: "integer"
+  defp field_to_json_schema(:float), do: "number"
+  defp field_to_json_schema(:boolean), do: "boolean"
 
-  defp field_to_json_schema({:array, type}),
-    do: %{"type" => "array", "items" => field_to_json_schema(type)}
+  defp field_to_json_schema({:array, type}), do: [field_to_json_schema(type)]
 
   # Default to "any" type for unknown types
-  defp field_to_json_schema(_), do: %{"type" => "any"}
-
-  # Add a specific handler for :id field
-  defp field_to_json_schema(:id), do: %{"type" => "integer"}
+  defp field_to_json_schema(_), do: raise("Unknown type")
 end
