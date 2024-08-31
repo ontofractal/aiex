@@ -1,4 +1,4 @@
-defmodule AISchemaConverter do
+defmodule AIex.AISchemaConverter do
   @moduledoc """
   Provides functionality to convert Ecto schemas to various formats.
 
@@ -25,7 +25,7 @@ defmodule AISchemaConverter do
   """
   @spec to_json_schema(module()) :: map()
   def to_json_schema(schema) do
-    AIex.JSONSchemaAdapter.convert(schema)
+    JSONSchemaAdapter.convert(schema)
   end
 
   @doc """
@@ -44,7 +44,7 @@ defmodule AISchemaConverter do
   """
   @spec to_python_type_hint(module(), atom()) :: String.t()
   def to_python_type_hint(schema, flavor \\ :default) when is_atom(flavor) do
-    AIex.PythonTypeHintAdapter.convert(schema, flavor)
+    PythonTypeHintAdapter.convert(schema, flavor)
   end
 
   @doc """
@@ -58,6 +58,6 @@ defmodule AISchemaConverter do
   """
   @spec to_typescript_type(module()) :: String.t()
   def to_typescript_type(schema) do
-    AIex.TypeScriptTypeAdapter.convert(schema)
+    TypeScriptTypeAdapter.convert(schema)
   end
 end
