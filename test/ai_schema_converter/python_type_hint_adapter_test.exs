@@ -1,6 +1,6 @@
-defmodule AISchemaConverter.PythonTypeHintAdapterTest do
+defmodule AIex.AISchemaConverter.PythonTypeHintAdapterTest do
   use ExUnit.Case
-  alias AISchemaConverter.PythonTypeHintAdapter
+  alias AIex.AISchemaConverter.PythonTypeHintAdapter
 
   defmodule TestSchema do
     use Ecto.Schema
@@ -18,13 +18,13 @@ defmodule AISchemaConverter.PythonTypeHintAdapterTest do
     expected =
       "TestSchema = TypedDict('TestSchema', {name: str, age: int, height: float, is_active: bool, tags: List[str]})"
 
-    assert PythonTypeHintAdapter.convert(TestSchema) == expected
+    assert AIex.PythonTypeHintAdapter.convert(TestSchema) == expected
   end
 
   test "converts Ecto schema to Gemini-specific Python type hint annotations" do
     expected =
       "TestSchema = TypedDict('TestSchema', {name: str, age: int, height: float, is_active: bool, tags: list[str]})"
 
-    assert PythonTypeHintAdapter.convert(TestSchema, :gemini) == expected
+    assert AIex.PythonTypeHintAdapter.convert(TestSchema, :gemini) == expected
   end
 end

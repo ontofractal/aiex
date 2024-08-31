@@ -1,4 +1,4 @@
-defmodule AISchemaConverter.PythonTypeHintAdapter do
+defmodule AIex.AISchemaConverter.PythonTypeHintAdapter do
   @moduledoc """
   Adapter for converting Ecto schemas to Python type hint annotations.
   """

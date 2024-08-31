@@ -1,4 +1,4 @@
-defmodule AISchemaConverter.TypeScriptTypeAdapter do
+defmodule AIex.AISchemaConverter.TypeScriptTypeAdapter do
   @moduledoc """
   Adapter for converting Ecto schemas to TypeScript type declarations.
   """

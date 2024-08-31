@@ -1,6 +1,6 @@
-defmodule AISchemaConverter.TypeScriptTypeAdapterTest do
+defmodule AIex.AISchemaConverter.TypeScriptTypeAdapterTest do
   use ExUnit.Case
-  alias AISchemaConverter.TypeScriptTypeAdapter
+  alias AIex.AISchemaConverter.TypeScriptTypeAdapter
 
   defmodule TestSchema do
     use Ecto.Schema
@@ -30,6 +30,6 @@ defmodule AISchemaConverter.TypeScriptTypeAdapterTest do
     }
     """
 
-    assert String.trim(TypeScriptTypeAdapter.convert(TestSchema)) == String.trim(expected)
+    assert String.trim(AIex.TypeScriptTypeAdapter.convert(TestSchema)) == String.trim(expected)
   end
 end

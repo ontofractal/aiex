@@ -6,7 +6,7 @@ defmodule AISchemaConverter do
   Python type hint annotations, and TypeScript type declarations.
   """
 
-  alias AISchemaConverter.{JSONSchemaAdapter, PythonTypeHintAdapter, TypeScriptTypeAdapter}
+  alias AIex.AISchemaConverter.{JSONSchemaAdapter, PythonTypeHintAdapter, TypeScriptTypeAdapter}
 
   @doc """
   Converts an Ecto schema to JSON schema.
@@ -25,7 +25,7 @@ defmodule AISchemaConverter do
   """
   @spec to_json_schema(struct()) :: map()
   def to_json_schema(%_{} = schema) do
-    JSONSchemaAdapter.convert(schema)
+    AIex.JSONSchemaAdapter.convert(schema)
   end
 
   @doc """
@@ -44,7 +44,7 @@ defmodule AISchemaConverter do
   """
   @spec to_python_type_hint(struct(), atom()) :: String.t()
   def to_python_type_hint(%_{} = schema, flavor \\ :default) when is_atom(flavor) do
-    PythonTypeHintAdapter.convert(schema, flavor)
+    AIex.PythonTypeHintAdapter.convert(schema, flavor)
   end
 
   @doc """
@@ -58,6 +58,6 @@ defmodule AISchemaConverter do
   """
   @spec to_typescript_type(struct()) :: String.t()
   def to_typescript_type(%_{} = schema) do
-    TypeScriptTypeAdapter.convert(schema)
+    AIex.TypeScriptTypeAdapter.convert(schema)
   end
 end

@@ -1,4 +1,4 @@
-defmodule AISchemaConverter.JSONSchemaAdapter do
+defmodule AIex.AISchemaConverter.JSONSchemaAdapter do
   @moduledoc """
   Adapter for converting Ecto schemas to JSON schemas.
   """
