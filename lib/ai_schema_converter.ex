@@ -23,8 +23,8 @@ defmodule AISchemaConverter do
         }
       }
   """
-  @spec to_json_schema(struct()) :: map()
-  def to_json_schema(%_{} = schema) do
+  @spec to_json_schema(module()) :: map()
+  def to_json_schema(schema) do
     AIex.JSONSchemaAdapter.convert(schema)
   end
 
@@ -42,8 +42,8 @@ defmodule AISchemaConverter do
       iex> AISchemaConverter.to_python_type_hint(schema, :pydantic)
       "from pydantic import BaseModel\\n\\nclass User(BaseModel):\\n    name: str\\n    age: int"
   """
-  @spec to_python_type_hint(struct(), atom()) :: String.t()
-  def to_python_type_hint(%_{} = schema, flavor \\ :default) when is_atom(flavor) do
+  @spec to_python_type_hint(module(), atom()) :: String.t()
+  def to_python_type_hint(schema, flavor \\ :default) when is_atom(flavor) do
     AIex.PythonTypeHintAdapter.convert(schema, flavor)
   end
 
@@ -56,8 +56,8 @@ defmodule AISchemaConverter do
       iex> AISchemaConverter.to_typescript_type(schema)
       "interface User {\\n  name: string;\\n  age: number;\\n}"
   """
-  @spec to_typescript_type(struct()) :: String.t()
-  def to_typescript_type(%_{} = schema) do
+  @spec to_typescript_type(module()) :: String.t()
+  def to_typescript_type(schema) do
     AIex.TypeScriptTypeAdapter.convert(schema)
   end
 end
