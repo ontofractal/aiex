@@ -1,75 +1,69 @@
 defmodule AIex.AISchemaConverter.JSONSchemaAdapterTest do
   use ExUnit.Case
   alias AIex.AISchemaConverter.JSONSchemaAdapter
-
-  defmodule SimpleSchema do
-    use Ecto.Schema
-
-    @primary_key false
-    schema "simple_schema" do
-      field(:name, :string)
-      field(:age, :integer)
-      field(:height, :float)
-      field(:is_active, :boolean)
-      field(:tags, {:array, :string})
-    end
-  end
-
-  defmodule ComplexSchema do
-    use Ecto.Schema
-
-    schema "complex_schema" do
-      field(:title, :string)
-      field(:description, :string)
-      field(:price, :decimal)
-      field(:quantity, :integer)
-      field(:categories, {:array, :string})
-      field(:metadata, :map)
-      field(:published_at, :naive_datetime)
-    end
-  end
+  alias AIex.Test.SchemaHelpers.{SimpleSchema, ComplexSchema1, ComplexSchema2}
 
   test "converts simple Ecto schema to JSON schema" do
     expected = %{
-      "type" => "object",
-      "properties" => %{
-        "name" => "string",
-        "age" => "integer",
-        "height" => "number",
-        "is_active" => "boolean",
-        "tags" => %{"type" => "array", "items" => "string"}
-      },
-      "required" => ["name", "age", "height", "is_active", "tags"]
+      "name" => "string",
+      "age" => "integer",
+      "height" => "number",
+      "is_active" => "boolean",
+      "tags" => ["string"]
     }
 
     assert AIex.AISchemaConverter.to_json_schema(SimpleSchema) == expected
   end
 
-  test "converts complex Ecto schema to JSON schema" do
+  test "converts complex Ecto schema with embedded schema to JSON schema" do
     expected = %{
-      "type" => "object",
-      "properties" => %{
-        "id" => "integer",
-        "title" => "string",
-        "description" => "string",
-        "price" => "string",
-        "quantity" => "integer",
-        "categories" => "[string]",
-        "metadata" => "string",
-        "published_at" => "string"
-      },
-      "required" => [
-        "id",
-        "title",
-        "description",
-        "price",
-        "quantity",
-        "categories",
-        "metadata",
-        "published_at"
-      ]
+      "id" => "integer",
+      "title" => "string",
+      "description" => "string",
+      "price" => "string",
+      "quantity" => "integer",
+      "categories" => ["string"],
+      "metadata" => "object",
+      "published_at" => "string",
+      "address" => %{
+        "street" => "string",
+        "city" => "string",
+        "country" => "string",
+        "postal_code" => "string"
+      }
     }
 
-    assert AIex.AISchemaConverter.to_json_schema(ComplexSchema) == expected
+    assert AIex.AISchemaConverter.to_json_schema(ComplexSchema1) == expected
+  end
+
+  test "converts complex Ecto schema with multiple embedded schemas to JSON schema" do
+    expected = %{
+      "id" => "integer",
+      "order_number" => "string",
+      "total_amount" => "string",
+      "status" => "string",
+      "placed_at" => "string",
+      "items" => [
+        %{
+          "name" => "string",
+          "quantity" => "integer",
+          "price" => "string"
+        }
+      ],
+      "shipping_address" => %{
+        "street" => "string",
+        "city" => "string",
+        "country" => "string",
+        "postal_code" => "string"
+      },
+      "billing_address" => %{
+        "street" => "string",
+        "city" => "string",
+        "country" => "string",
+        "postal_code" => "string"
+      }
+    }
+
+    assert AIex.AISchemaConverter.to_json_schema(ComplexSchema2) == expected
   end
 end

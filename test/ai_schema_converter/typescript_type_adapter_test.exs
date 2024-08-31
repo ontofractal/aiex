@@ -1,35 +1,74 @@
 defmodule AIex.AISchemaConverter.TypeScriptTypeAdapterTest do
   use ExUnit.Case
   alias AIex.AISchemaConverter.TypeScriptTypeAdapter
+  alias AIex.Test.SchemaHelpers.{SimpleSchema, ComplexSchema1, ComplexSchema2}
 
-  defmodule TestSchema do
-    use Ecto.Schema
-
-    @primary_key false
-    schema "test_schema" do
-      field(:name, :string)
-      field(:age, :integer)
-      field(:height, :float)
-      field(:is_active, :boolean)
-      field(:tags, {:array, :string})
-      field(:metadata, :map)
-      field(:created_at, :naive_datetime)
-    end
-  end
-
-  test "converts Ecto schema to TypeScript type declaration" do
+  test "converts simple Ecto schema to TypeScript type declaration" do
     expected = """
-    interface TestSchema {
+    interface SimpleSchema {
       name: string;
       age: number;
       height: number;
       is_active: boolean;
       tags: string[];
-      metadata: Record<string, any>;
-      created_at: string;
     }
     """
 
-    assert String.trim(AIex.AISchemaConverter.to_typescript_type(TestSchema)) == String.trim(expected)
+    assert String.trim(TypeScriptTypeAdapter.convert(SimpleSchema)) ==
+             String.trim(expected)
+  end
+
+  test "converts complex Ecto schema with embedded schema to TypeScript type declaration" do
+    expected = """
+    interface ComplexSchema1 {
+      title: string;
+      description: string;
+      price: string;
+      quantity: number;
+      categories: string[];
+      metadata: Record<string, any>;
+      published_at: string;
+      address: {
+        street: string;
+        city: string;
+        country: string;
+        postal_code: string;
+      };
+    }
+    """
+
+    assert String.trim(TypeScriptTypeAdapter.convert(ComplexSchema1)) ==
+             String.trim(expected)
+  end
+
+  test "converts complex Ecto schema with multiple embedded schemas to TypeScript type declaration" do
+    expected = """
+    interface ComplexSchema2 {
+      order_number: string;
+      total_amount: string;
+      status: string;
+      placed_at: string;
+      items: Array<{
+        name: string;
+        quantity: number;
+        price: string;
+      }>;
+      shipping_address: {
+        street: string;
+        city: string;
+        country: string;
+        postal_code: string;
+      };
+      billing_address: {
+        street: string;
+        city: string;
+        country: string;
+        postal_code: string;
+      };
+    }
+    """
+
+    assert String.trim(TypeScriptTypeAdapter.convert(ComplexSchema2)) ==
+             String.trim(expected)
   end
 end
