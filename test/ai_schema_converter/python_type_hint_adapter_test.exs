@@ -18,13 +18,13 @@ defmodule AIex.AISchemaConverter.PythonTypeHintAdapterTest do
     expected =
       "TestSchema = TypedDict('TestSchema', {name: str, age: int, height: float, is_active: bool, tags: List[str]})"
 
-    assert AIex.PythonTypeHintAdapter.convert(TestSchema) == expected
+    assert AISchemaConverter.to_python_type_hint(TestSchema) == expected
   end
 
   test "converts Ecto schema to Gemini-specific Python type hint annotations" do
     expected =
       "TestSchema = TypedDict('TestSchema', {name: str, age: int, height: float, is_active: bool, tags: list[str]})"
 
-    assert AIex.PythonTypeHintAdapter.convert(TestSchema, :gemini) == expected
+    assert AISchemaConverter.to_python_type_hint(TestSchema, :gemini) == expected
   end
 end

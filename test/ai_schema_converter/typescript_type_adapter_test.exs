@@ -30,6 +30,6 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapterTest do
     }
     """
 
-    assert String.trim(AIex.TypeScriptTypeAdapter.convert(TestSchema)) == String.trim(expected)
+    assert String.trim(AISchemaConverter.to_typescript_type(TestSchema)) == String.trim(expected)
   end
 end

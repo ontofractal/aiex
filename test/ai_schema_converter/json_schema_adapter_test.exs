@@ -42,7 +42,7 @@ defmodule AIex.AISchemaConverter.JSONSchemaAdapterTest do
       "required" => ["name", "age", "height", "is_active", "tags"]
     }
 
-    assert AIex.JSONSchemaAdapter.convert(SimpleSchema) == expected
+    assert AISchemaConverter.to_json_schema(SimpleSchema) == expected
   end
 
   test "converts complex Ecto schema to JSON schema" do
@@ -70,6 +70,6 @@ defmodule AIex.AISchemaConverter.JSONSchemaAdapterTest do
       ]
     }
 
-    assert AIex.JSONSchemaAdapter.convert(ComplexSchema) == expected
+    assert AISchemaConverter.to_json_schema(ComplexSchema) == expected
   end
 end
