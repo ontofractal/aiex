@@ -23,7 +23,7 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapterTest do
     interface ComplexSchema1 {
       title: string;
       description: string;
-      price: string;
+      price: number;
       quantity: number;
       categories: string[];
       metadata: Record<string, any>;
@@ -45,13 +45,13 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapterTest do
     expected = """
     interface ComplexSchema2 {
       order_number: string;
-      total_amount: string;
+      total_amount: number;
       status: string;
       placed_at: string;
       items: Array<{
         name: string;
         quantity: number;
-        price: string;
+        price: number;
       }>;
       shipping_address: {
         street: string;
