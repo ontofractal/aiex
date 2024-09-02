@@ -32,11 +32,11 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapter do
   defp type_to_typescript(:id), do: "number"
   defp type_to_typescript(:utc_datetime), do: "string"
 
-  defp type_to_typescript({:parameterized, {Ecto.Embedded, %Ecto.Embedded{cardinality: :one, related: schema}}}) do
+  defp type_to_typescript({:parameterized, {Ecto.Embedded, %{cardinality: :one, related: schema}}}) do
     "{\n" <> embedded_fields_to_typescript(schema) <> "\n  }"
   end
 
-  defp type_to_typescript({:parameterized, {Ecto.Embedded, %Ecto.Embedded{cardinality: :many, related: schema}}}) do
+  defp type_to_typescript({:parameterized, {Ecto.Embedded, %{cardinality: :many, related: schema}}}) do
     "Array<{\n" <> embedded_fields_to_typescript(schema) <> "\n  }>"
   end
 
