@@ -4,7 +4,7 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapter do
   """
 
   def convert(schema) do
-    fields = schema.__schema__(:fields)
+    fields = schema.__schema__(:fields) |> Enum.reject(&(&1 == :id))
     schema_name = schema |> Module.split() |> List.last()
 
     field_declarations =

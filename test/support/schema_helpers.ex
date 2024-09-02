@@ -2,7 +2,6 @@ defmodule AIex.Test.SchemaHelpers do
   defmodule SimpleSchema do
     use Ecto.Schema
 
-    @primary_key false
     schema "simple_schema" do
       field(:name, :string)
       field(:age, :integer)
@@ -15,7 +14,6 @@ defmodule AIex.Test.SchemaHelpers do
   defmodule Address do
     use Ecto.Schema
 
-    @primary_key false
     embedded_schema do
       field(:street, :string)
       field(:city, :string)
@@ -27,7 +25,6 @@ defmodule AIex.Test.SchemaHelpers do
   defmodule ComplexSchema1 do
     use Ecto.Schema
 
-    @primary_key false
     schema "complex_schema_1" do
       field(:title, :string)
       field(:description, :string)
@@ -43,7 +40,6 @@ defmodule AIex.Test.SchemaHelpers do
   defmodule Item do
     use Ecto.Schema
 
-    @primary_key false
     embedded_schema do
       field(:name, :string)
       field(:quantity, :integer)
@@ -54,7 +50,6 @@ defmodule AIex.Test.SchemaHelpers do
   defmodule ComplexSchema2 do
     use Ecto.Schema
 
-    @primary_key false
     schema "complex_schema_2" do
       field(:order_number, :string)
       field(:total_amount, :decimal)
