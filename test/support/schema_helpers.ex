@@ -60,4 +60,44 @@ defmodule AIex.Test.SchemaHelpers do
       embeds_one(:billing_address, Address)
     end
   end
+
+  defmodule User do
+    use Ecto.Schema
+
+    schema "users" do
+      field(:name, :string)
+      field(:email, :string)
+      has_many(:posts, Post)
+      has_one(:profile, Profile)
+    end
+  end
+
+  defmodule Post do
+    use Ecto.Schema
+
+    schema "posts" do
+      field(:title, :string)
+      field(:content, :string)
+      belongs_to(:user, User)
+      many_to_many(:tags, Tag, join_through: "posts_tags")
+    end
+  end
+
+  defmodule Profile do
+    use Ecto.Schema
+
+    schema "profiles" do
+      field(:bio, :string)
+      belongs_to(:user, User)
+    end
+  end
+
+  defmodule Tag do
+    use Ecto.Schema
+
+    schema "tags" do
+      field(:name, :string)
+      many_to_many(:posts, Post, join_through: "posts_tags")
+    end
+  end
 end
