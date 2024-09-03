@@ -42,7 +42,7 @@ defmodule AIex do
 
   """
   @spec build_json_prompt(%{__meta__: any()}, keyword()) :: String.t()
-  def build_json_prompt(%{__meta__: _} = schema, opts \\ []) do
+  def build_json_prompt(schema, opts \\ []) when is_atom(schema) do
     case NimbleOptions.validate(opts, @schema_options) do
       {:ok, valid_opts} ->
         do_build_json_prompt(schema, valid_opts)
