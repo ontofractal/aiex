@@ -3,7 +3,7 @@ defmodule Ailixir.MixProject do
 
   def project do
     [
-      app: :ailixir,
+      app: :aiex,
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
@@ -29,7 +29,9 @@ defmodule Ailixir.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       {:ecto, "~> 3.12"},
       {:ex_doc, "~> 0.29.3", only: :dev, runtime: false},
-      {:jason, "~> 1.4.0"}
+      {:jason, "~> 1.4.0"},
+      {:nimble_options, "~> 1.1"},
+      {:mix_test_watch, "~> 1.0", only: :dev, runtime: false}
     ]
   end
 end
