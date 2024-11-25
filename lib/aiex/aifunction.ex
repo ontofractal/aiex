@@ -8,8 +8,8 @@ defmodule AIex.Aifunction do
     quote do
       import AIex.Aifunction,
         only: [
-          field: 2,
-          field: 3,
+          ai_field: 2,
+          ai_field: 3,
           user_input: 1,
           system_input: 1,
           output: 1,
@@ -18,6 +18,7 @@ defmodule AIex.Aifunction do
         ]
 
       import Ecto.Changeset
+      import Ecto.Schema
       @before_compile AIex.Aifunction
       Module.register_attribute(__MODULE__, :user_input_fields, accumulate: true)
       Module.register_attribute(__MODULE__, :system_input_fields, accumulate: true)
@@ -35,7 +36,24 @@ defmodule AIex.Aifunction do
   defmacro user_input(do: block) do
     quote do
       @input_section :user
-      unquote(block)
+
+      defmodule UserInput do
+        use Ecto.Schema
+        import Ecto.Changeset
+
+        @primary_key false
+        embedded_schema do
+          unquote(block)
+        end
+
+        def changeset(struct \\ %__MODULE__{}, params) do
+          struct
+          |> cast(params, __MODULE__.__schema__(:fields))
+          |> validate_required(__MODULE__.__schema__(:fields))
+        end
+      end
+
+      Module.put_attribute(__MODULE__, :user_input_schema_module, UserInput)
     end
   end
 
@@ -56,7 +74,24 @@ defmodule AIex.Aifunction do
     quote do
       @input_section :output
       Module.put_attribute(__MODULE__, :has_output_section, true)
-      unquote(block)
+
+      defmodule Output do
+        use Ecto.Schema
+        import Ecto.Changeset
+
+        @primary_key false
+        embedded_schema do
+          unquote(block)
+        end
+
+        def changeset(struct \\ %__MODULE__{}, params) do
+          struct
+          |> cast(params, __MODULE__.__schema__(:fields))
+          |> validate_required(__MODULE__.__schema__(:fields))
+        end
+      end
+
+      Module.put_attribute(__MODULE__, :output_schema_module, Output)
     end
   end
 
@@ -100,29 +135,14 @@ defmodule AIex.Aifunction do
   @doc """
   Defines a field in the AI schema.
   """
-  defmacro field(name, type, opts \\ []) do
+  defmacro ai_field(name, type, opts \\ []) do
     quote do
+      field = {unquote(name), unquote(type), unquote(opts)}
+
       case @input_section do
-        :user ->
-          Module.put_attribute(
-            __MODULE__,
-            :user_input_fields,
-            {unquote(name), unquote(type), unquote(opts)}
-          )
-
-        :system ->
-          Module.put_attribute(
-            __MODULE__,
-            :system_input_fields,
-            {unquote(name), unquote(type), unquote(opts)}
-          )
-
-        :output ->
-          Module.put_attribute(
-            __MODULE__,
-            :output_fields,
-            {unquote(name), unquote(type), unquote(opts)}
-          )
+        :user -> Module.put_attribute(__MODULE__, :user_input_fields, field)
+        :system -> Module.put_attribute(__MODULE__, :system_input_fields, field)
+        :output -> Module.put_attribute(__MODULE__, :output_fields, field)
       end
     end
   end
@@ -131,67 +151,53 @@ defmodule AIex.Aifunction do
   defmacro __before_compile__(_env) do
     quote do
       def __schema__(:user_input_fields) do
-        @user_input_fields |> Enum.map(fn {name, _type, _opts} -> name end)
-      end
-
-      def __schema__(:system_input_fields) do
-        @system_input_fields |> Enum.map(fn {name, _type, _opts} -> name end)
+        __MODULE__.UserInput.__schema__(:fields)
       end
 
       def __schema__(:output_fields) do
-        @output_fields |> Enum.map(fn {name, _type, _opts} -> name end)
+        __MODULE__.Output.__schema__(:fields)
       end
 
-      def __schema__(:user_input_types) do
-        @user_input_fields
-        |> Enum.map(fn {name, type, _opts} -> {name, type} end)
-        |> Enum.into(%{})
+      def cast_input(params) do
+        __MODULE__.UserInput.changeset(params)
       end
 
-      def __schema__(:system_input_types) do
-        @system_input_fields
-        |> Enum.map(fn {name, type, _opts} -> {name, type} end)
-        |> Enum.into(%{})
+      def cast_output(params) do
+        __MODULE__.Output.changeset(params)
       end
 
-      def __schema__(:output_types) do
-        @output_fields |> Enum.map(fn {name, type, _opts} -> {name, type} end) |> Enum.into(%{})
+      def format_input(params) do
+        case cast_input(params) do
+          %{valid?: true} = changeset ->
+            {:ok, render_template(Ecto.Changeset.apply_changes(changeset))}
+
+          changeset ->
+            {:error, changeset}
+        end
       end
 
+      def render_template(assigns) do
+        render_user_template(assigns)
+      end
+
+      @has_output_section Module.get_attribute(__MODULE__, :has_output_section)
       def __schema__(:output_schema) do
-        if Module.get_attribute(__MODULE__, :has_output_section) do
+        if @has_output_section do
           __MODULE__
         end
       end
 
-      def cast_user_input(params) do
-        types = __schema__(:user_input_types)
-
-        {%{}, types}
-        |> cast(params, Map.keys(types))
-        |> validate_required(Map.keys(types))
+      def __schema__(:openai_options) do
+        if @has_output_section do
+          %{response_format: %{type: "json_object"}}
+        else
+          %{}
+        end
       end
 
-      def cast_system_input(params) do
-        types = __schema__(:system_input_types)
+      def maybe_apply_output_schema(changeset, nil), do: changeset
 
-        {%{}, types}
-        |> cast(params, Map.keys(types))
-      end
-
-      def cast_output(params) do
-        types = __schema__(:output_types)
-        schema_module = __schema__(:output_schema)
-
-        {%{}, types}
-        |> cast(params, Map.keys(types))
-        |> validate_required(Map.keys(types))
-        |> maybe_apply_output_schema(schema_module)
-      end
-
-      defp maybe_apply_output_schema(changeset, nil), do: changeset
-
-      defp maybe_apply_output_schema(changeset, schema_module) do
+      def maybe_apply_output_schema(changeset, schema_module) do
         case changeset do
           %{valid?: true} = changeset ->
             case apply(schema_module, :cast, [changeset.changes]) do
@@ -204,33 +210,6 @@ defmodule AIex.Aifunction do
 
           changeset ->
             changeset
-        end
-      end
-
-      def format_input(params) do
-        with {:ok, system_template} <- format_system_template(params),
-             {:ok, user_template} <- format_user_template(params) do
-          {:ok, [system_template, user_template]}
-        end
-      end
-
-      defp format_system_template(params) do
-        case cast_system_input(params) do
-          %{valid?: true} = changeset ->
-            {:ok, render_system_template(changeset.changes)}
-
-          _ ->
-            {:ok, nil}
-        end
-      end
-
-      defp format_user_template(params) do
-        case cast_user_input(params) do
-          %{valid?: true} = changeset ->
-            {:ok, render_user_template(changeset.changes)}
-
-          changeset ->
-            {:error, changeset}
         end
       end
     end
