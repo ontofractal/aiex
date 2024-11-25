@@ -6,24 +6,26 @@ defmodule AIex.Query do
 
   defstruct provider: nil,
             model: nil,
-            system_prompt: nil,
             messages: [],
-            response_schema: nil
+            aifunction: nil,
+            openai_options: %{}
 
   @type message :: %{role: String.t(), content: String.t()}
   @type t :: %__MODULE__{
           provider: String.t() | nil,
           model: String.t() | nil,
-          system_prompt: String.t() | nil,
           messages: [message()],
-          response_schema: module() | nil
+          aifunction: module() | nil,
+          openai_options: map()
         }
 
   @doc """
   Creates a new AI query.
   """
-  def ai do
-    %__MODULE__{}
+  def ai(aifunction \\ nil) do
+    %__MODULE__{
+      aifunction: aifunction
+    }
   end
 
   @doc """
@@ -42,10 +44,31 @@ defmodule AIex.Query do
   end
 
   @doc """
-  Adds a user message to the conversation.
+  Sets the output schema for the query.
+  """
+  def output_schema(query, schema) when is_atom(schema) do
+    %{query | output_schema: schema}
+  end
+
+  @doc """
+  Adds a user message to the conversation. If a schema is set and assigns are provided,
+  it will render the user template with the given assigns.
   """
   def user_prompt(query, content) when is_binary(content) do
     add_message(query, "user", content)
+  end
+
+  def user_prompt(%{aifunction: aifunction} = query, assigns)
+      when not is_nil(aifunction) do
+    content = apply(aifunction, :render_user_template, [assigns])
+    add_message(query, "user", content)
+  end
+
+  @doc """
+  Adds a system message to the conversation.
+  """
+  def system_message(query, content) when is_binary(content) do
+    add_message(query, "system", content)
   end
 
   @doc """
@@ -55,45 +78,8 @@ defmodule AIex.Query do
     add_message(query, "assistant", content)
   end
 
-  @doc """
-  Sets the response schema for the query.
-  The schema module should implement AIex.Schema.
-  """
-  def response_schema(query, schema) when is_atom(schema) do
-    %{query | response_schema: schema}
-  end
-
-  @doc """
-  Validates that the query is ready to be executed.
-  """
-  def validate(%__MODULE__{} = query) do
-    with :ok <- validate_provider_and_model(query),
-         :ok <- validate_messages(query),
-         :ok <- validate_schema(query) do
-      {:ok, query}
-    end
-  end
-
-  # Private functions
-
   defp add_message(query, role, content) do
     message = %{role: role, content: content}
     %{query | messages: query.messages ++ [message]}
-  end
-
-  defp validate_provider_and_model(%{provider: nil}), do: {:error, "provider is required"}
-  defp validate_provider_and_model(%{model: nil}), do: {:error, "model is required"}
-  defp validate_provider_and_model(_), do: :ok
-
-  defp validate_messages(%{messages: []}), do: {:error, "at least one message is required"}
-  defp validate_messages(_), do: :ok
-
-  defp validate_schema(%{response_schema: nil}), do: {:error, "response schema is required"}
-  defp validate_schema(%{response_schema: schema}) do
-    if Code.ensure_loaded?(schema) and function_exported?(schema, :__schema__, 1) do
-      :ok
-    else
-      {:error, "invalid schema module"}
-    end
   end
 end
