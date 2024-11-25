@@ -18,16 +18,24 @@ defmodule AIex.OpenAI do
   Transforms an AIex.Query into an OpenAI API request format.
   This is a shared implementation that adapters can use.
   """
-  def to_request(%{model: model, messages: messages, aifunction: aifunction} = _query)
+  def to_request(
+        %{
+          model: model,
+          messages: messages,
+          aifunction: aifunction
+        } = _query
+      )
       when is_binary(model) and is_list(messages) and is_atom(aifunction) do
     system_message = %{role: "system", content: aifunction.render_system_template(%{})}
     messages = [system_message | messages]
+    openai_options = aifunction.__schema__(:openai_options)
 
     request =
       OpenaiEx.Chat.Completions.new(
         model: model,
         messages: messages
       )
+      |> Map.merge(openai_options)
 
     {:ok, request}
   end
