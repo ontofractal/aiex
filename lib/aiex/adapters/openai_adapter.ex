@@ -1,30 +1,18 @@
-defmodule AIex.OpenAI do
+defmodule AIex.OpenAI.Adapter do
   @moduledoc """
-  OpenAI-compatible API adapter behaviour and implementation.
-  This module defines the behaviour that OpenAI-compatible API providers must implement,
-  similar to how Ecto.Adapter works.
+  Adapter for converting AIex queries to OpenAI-compatible format
   """
 
   @type t :: module()
   @type query :: AIex.Query.t()
   @type run_opts :: [{:api_key, String.t()} | {:base_url, String.t()}]
 
-  @doc """
-  Callback invoked to run a query through an OpenAI-compatible API.
-  """
   @callback run(query(), run_opts()) :: {:ok, map()} | {:error, term()}
 
   @doc """
   Transforms an AIex.Query into an OpenAI API request format.
-  This is a shared implementation that adapters can use.
   """
-  def to_request(
-        %{
-          model: model,
-          messages: messages,
-          aifunction: aifunction
-        } = _query
-      )
+  def prepare_query(%{model: model, messages: messages, aifunction: aifunction} = _query)
       when is_binary(model) and is_list(messages) and is_atom(aifunction) do
     system_message = %{role: "system", content: aifunction.render_system_template(%{})}
     messages = [system_message | messages]
@@ -40,30 +28,7 @@ defmodule AIex.OpenAI do
     {:ok, request}
   end
 
-  def to_request(_), do: {:error, :invalid_query}
-
-  @doc """
-  Parses the OpenAI API response into a schema.
-  This is a shared implementation that adapters can use.
-  """
-  def parse_response(
-        %{"choices" => [%{"message" => %{"content" => content}} | _]} = _response,
-        aifunction
-      )
-      when is_atom(aifunction) do
-    with {:ok, parsed} <- Jason.decode(content),
-         changeset <- aifunction.cast_output(parsed),
-         true <- changeset.valid? do
-      {:ok, changeset}
-    else
-      {:error, _} -> {:error, :invalid_json}
-      false -> {:error, :invalid_schema}
-    end
-  end
-
-  def parse_response(_raw_response, _aifunction) do
-    {:error, :invalid_response}
-  end
+  def prepare_query(_), do: {:error, :invalid_query}
 
   @doc """
   Helper to validate API key from options
@@ -84,6 +49,14 @@ defmodule AIex.OpenAI do
     case Keyword.get(opts, :base_url) do
       nil -> client
       base_url -> OpenaiEx.with_base_url(client, base_url)
+    end
+  end
+
+  def run(query, opts \\ []) do
+    with {:ok, api_key} <- validate_api_key(opts),
+         client <- create_client(api_key, opts),
+         {:ok, request} <- prepare_query(query) do
+      OpenaiEx.chat_completion(client, request)
     end
   end
 end
