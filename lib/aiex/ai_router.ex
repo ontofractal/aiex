@@ -3,6 +3,8 @@ defmodule AIex.AiRouter do
   Provides routing functionality for AI model requests with middleware support.
   """
 
+  @default_middlewares [AIex.Middleware.OutputSchemaMiddleware]
+
   @callback init(opts :: Keyword.t()) :: {:ok, state :: term} | {:error, term}
   @callback run(query :: AIex.Query.t(), opts :: Keyword.t()) ::
               {:ok, result :: map} | {:error, term}
@@ -35,7 +37,8 @@ defmodule AIex.AiRouter do
       def init(opts), do: {:ok, opts}
 
       def run(query, opts \\ []) do
-        middlewares = Application.get_env(:aiex, :middlewares, [])
+        default_pre_middlewares = [AIex.Middleware.OutputSchemaMiddleware]
+        default_post_middlewares = []
 
         config = [
           adapter: unquote(opts[:adapter]),
@@ -43,15 +46,15 @@ defmodule AIex.AiRouter do
         ]
 
         query
-        |> apply_middleware(:before_request, middlewares)
+        |> apply_middleware(:before_request, default_pre_middlewares)
         |> execute_request(config)
-        |> apply_middleware(:after_request, middlewares)
+        |> apply_middleware(:after_request, default_post_middlewares)
         |> handle_response()
       end
 
       defp apply_middleware(data, phase, middlewares) do
         Enum.reduce(middlewares, data, fn middleware, acc ->
-          middleware.call(acc, phase)
+          apply(middleware, phase, [data])
         end)
       end
 
