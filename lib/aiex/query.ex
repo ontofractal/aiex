@@ -73,10 +73,19 @@ defmodule AIex.Query do
     add_message(query, "user", content)
   end
 
-  def user_prompt(%{aifunction: aifunction} = query, assigns)
-      when not is_nil(aifunction) do
-    content = apply(aifunction, :render_user_template, [assigns])
-    add_message(query, "user", content)
+  def user_prompt(%{aifunction: aifunction} = query, assigns) when not is_nil(aifunction) do
+    assigns = Enum.into(assigns, %{})
+    user_input_module = Module.concat([aifunction, UserInput])
+
+    case user_input_module.changeset(assigns) do
+      %{valid?: true} = changeset ->
+        validated_input = Ecto.Changeset.apply_changes(changeset)
+        content = apply(aifunction, :render_user_template, [Enum.to_list Map.from_struct(validated_input)])
+        add_message(query, "user", content)
+
+      %{valid?: false} = changeset ->
+        raise ArgumentError, "Invalid user input: #{inspect(changeset.errors)}"
+    end
   end
 
   @doc """
