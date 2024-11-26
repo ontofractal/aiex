@@ -163,7 +163,10 @@ defmodule AIex.Aifunction do
       end
 
       def cast_output(params) do
-        __MODULE__.Output.changeset(params)
+        case __MODULE__.Output.changeset(params) do
+          %{valid?: true} = changeset -> {:ok, Ecto.Changeset.apply_changes(changeset)}
+          changeset -> {:error, changeset}
+        end
       end
 
       def format_input(params) do
