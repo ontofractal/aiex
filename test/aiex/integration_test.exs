@@ -4,6 +4,12 @@ defmodule AIex.IntegrationTest do
 
   @moduletag :integration
 
+  defmodule TestAiRouter do
+    use AIex.AiRouter,
+      adapter: AIex.Adapters.OpenAI,
+      provider: AIex.OpenRouter
+  end
+
   defmodule SentimentAifn do
     use AIex.Aifunction
 

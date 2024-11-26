@@ -121,7 +121,7 @@ defmodule AIex.AifunctionTest do
         |> AIex.Query.user_prompt("How are you?")
         |> AIex.Query.response_schema(TestSchema)
 
-      assert {:ok, request} = AIex.OpenAI.to_request(query)
+      assert {:ok, request} = AIex.Adapters.OpenAI.to_request(query)
       assert request.model == "gpt-3.5-turbo"
       assert length(request.messages) == 3
     end

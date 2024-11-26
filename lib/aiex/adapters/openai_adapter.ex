@@ -1,4 +1,4 @@
-defmodule AIex.OpenAI.Adapter do
+defmodule AIex.Adapters.OpenAI do
   @moduledoc """
   Adapter for converting AIex queries to OpenAI-compatible format
   """
