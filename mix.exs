@@ -31,7 +31,8 @@ defmodule Ailixir.MixProject do
       {:jason, "~> 1.4.0"},
       {:nimble_options, "~> 1.1"},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
-      {:openai_ex, "~> 0.8.4"}
+      {:openai_ex, "~> 0.8.4"},
+      {:req, "~> 0.4.0"}
     ]
   end
 end
