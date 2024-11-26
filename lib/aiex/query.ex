@@ -4,19 +4,21 @@ defmodule AIex.Query do
   Similar to Ecto.Query, this module allows building AI requests in a pipeline.
   """
 
-  defstruct provider: nil,
-            model: nil,
+  defstruct model: nil,
             messages: [],
             aifunction: nil,
-            openai_options: %{}
+            openai_options: %{},
+            system_prompt: "",
+            output_schema: nil
 
   @type message :: %{role: String.t(), content: String.t()}
   @type t :: %__MODULE__{
-          provider: String.t() | nil,
           model: String.t() | nil,
           messages: [message()],
           aifunction: module() | nil,
-          openai_options: map()
+          openai_options: map(),
+          system_prompt: String.t() | nil,
+          output_schema: atom() | nil
         }
 
   @doc """
@@ -29,25 +31,38 @@ defmodule AIex.Query do
   end
 
   @doc """
-  Sets the model provider and name for the query.
+  Sets the model for the query in the format "namespace/name".
+  Example: "google/gemini-pro-1.5" or "anthropic/claude-3-opus"
   """
-  def model(query, provider: provider, model: model)
-      when is_binary(provider) and is_binary(model) do
-    %{query | provider: provider, model: model}
+  def model(query, model_string) when is_binary(model_string) do
+    case String.split(model_string, "/") do
+      [namespace, model_name] when namespace != "" and model_name != "" ->
+        %__MODULE__{query | model: model_string}
+
+      _ ->
+        raise ArgumentError,
+              "Model string must be in format 'namespace/model' with non-empty parts"
+    end
   end
 
   @doc """
   Sets the system prompt for the query.
   """
   def system_prompt(query, prompt) when is_binary(prompt) do
-    %{query | system_prompt: prompt}
+    %__MODULE__{query | system_prompt: prompt}
+  end
+
+  def system_prompt(%{aifunction: aifunction} = query, assigns)
+      when not is_nil(aifunction) do
+    content = apply(aifunction, :render_system_template, [assigns])
+    %__MODULE__{query | system_prompt: content}
   end
 
   @doc """
   Sets the output schema for the query.
   """
   def output_schema(query, schema) when is_atom(schema) do
-    %{query | output_schema: schema}
+    %__MODULE__{query | output_schema: schema}
   end
 
   @doc """
@@ -80,6 +95,6 @@ defmodule AIex.Query do
 
   defp add_message(query, role, content) do
     message = %{role: role, content: content}
-    %{query | messages: query.messages ++ [message]}
+    %__MODULE__{query | messages: query.messages ++ [message]}
   end
 end
