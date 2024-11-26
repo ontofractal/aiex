@@ -2,6 +2,7 @@ defmodule AIex.Adapters.OpenAI do
   @moduledoc """
   Adapter for converting AIex queries to OpenAI-compatible format
   """
+alias AIex.Query
 
   @type t :: module()
   @type query :: AIex.Query.t()
@@ -12,9 +13,9 @@ defmodule AIex.Adapters.OpenAI do
   @doc """
   Transforms an AIex.Query into an OpenAI API request format.
   """
-  def prepare_query(%{model: model, messages: messages, aifunction: aifunction} = _query)
+  def prepare_query(%Query{model: model, messages: messages, aifunction: aifunction} = query)
       when is_binary(model) and is_list(messages) and is_atom(aifunction) do
-    system_message = %{role: "system", content: aifunction.render_system_template(%{})}
+    system_message = %{role: "system", content: query.system_prompt}
     messages = [system_message | messages]
     openai_options = aifunction.__schema__(:openai_options)
 
