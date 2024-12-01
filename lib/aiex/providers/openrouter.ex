@@ -8,7 +8,7 @@ defmodule AIex.OpenRouter do
   @doc """
   Makes a request to the OpenRouter API.
   """
-  def request(query) do
+  def request(prepared_request) do
     api_key = System.get_env("OPENROUTER_API_KEY")
     url = System.get_env("OPENROUTER_URL", @default_url)
 
@@ -18,7 +18,7 @@ defmodule AIex.OpenRouter do
     ]
 
     case Req.post(url,
-           json: query,
+           json: prepared_request,
            headers: headers
          ) do
       {:ok, %{status: 200, body: body}} ->

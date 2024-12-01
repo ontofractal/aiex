@@ -2,7 +2,7 @@ defmodule AIex.Adapters.OpenAI do
   @moduledoc """
   Adapter for converting AIex queries to OpenAI-compatible format
   """
-alias AIex.Query
+  alias AIex.Query
 
   @type t :: module()
   @type query :: AIex.Query.t()
