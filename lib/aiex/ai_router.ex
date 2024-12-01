@@ -3,8 +3,6 @@ defmodule AIex.AiRouter do
   Provides routing functionality for AI model requests with middleware support.
   """
 
-  @default_middlewares [AIex.Middleware.OutputSchemaMiddleware]
-
   @callback init(opts :: Keyword.t()) :: {:ok, state :: term} | {:error, term}
   @callback run(query :: AIex.Query.t(), opts :: Keyword.t()) ::
               {:ok, result :: map} | {:error, term}
@@ -37,8 +35,9 @@ defmodule AIex.AiRouter do
       def init(opts), do: {:ok, opts}
 
       def run(query, opts \\ []) do
-        default_pre_middlewares = [AIex.Middleware.OutputSchemaMiddleware]
-        default_post_middlewares = []
+        default_middlewares = [AIex.Middleware.OutputSchemaMiddleware]
+        pre_middlewares = default_middlewares ++ []
+        post_middlewares = []
 
         config = [
           adapter: unquote(opts[:adapter]),
@@ -46,9 +45,11 @@ defmodule AIex.AiRouter do
         ]
 
         query
-        |> apply_middleware(:before_request, default_pre_middlewares)
+        |> apply_system_prompt()
+        |> validate_system_prompt()
+        |> apply_middleware(:before_request, pre_middlewares)
         |> execute_request(config)
-        |> apply_middleware(:after_request, default_post_middlewares)
+        |> apply_middleware(:after_request, post_middlewares)
         |> handle_response()
       end
 
@@ -70,6 +71,20 @@ defmodule AIex.AiRouter do
           {:error, _} = err -> err
         end
       end
+
+      def validate_system_prompt(%AIex.Query{} = query) do
+        case query.system_prompt do
+          x when is_nil(x) or x == "" -> raise "System prompt is required"
+          _ -> query
+        end
+      end
+
+      defp apply_system_prompt(%AIex.Query{system_prompt: ""} = query) do
+        content = apply(query.aifunction, :render_system_template, [%{}])
+        %AIex.Query{query | system_prompt: content}
+      end
+
+      defp apply_system_prompt(%AIex.Query{} = query), do: query
 
       defp handle_response({:ok, response}), do: {:ok, response}
       defp handle_response({:error, _} = err), do: err
