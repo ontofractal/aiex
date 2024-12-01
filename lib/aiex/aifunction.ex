@@ -25,8 +25,14 @@ defmodule AIex.Aifunction do
       Module.register_attribute(__MODULE__, :output_fields, accumulate: true)
       Module.register_attribute(__MODULE__, :template_module, [])
       Module.register_attribute(__MODULE__, :user_template_content, [])
+      Module.register_attribute(__MODULE__, :system_template_content, [])
+      Module.register_attribute(__MODULE__, :has_system_template, default: false)
       Module.register_attribute(__MODULE__, :input_section, [])
       Module.register_attribute(__MODULE__, :has_output_section, [])
+      Module.register_attribute(__MODULE__, :has_system_input, default: false)
+      Module.register_attribute(__MODULE__, :user_input_schema_module, [])
+      Module.register_attribute(__MODULE__, :system_input_schema_module, [])
+      Module.register_attribute(__MODULE__, :output_schema_module, [])
     end
   end
 
@@ -47,9 +53,32 @@ defmodule AIex.Aifunction do
         end
 
         def changeset(struct \\ %__MODULE__{}, params) do
+          fields = __MODULE__.__schema__(:fields)
+          non_embeds = fields -- __MODULE__.__schema__(:embeds)
+          embeds = __MODULE__.__schema__(:embeds)
+
           struct
-          |> cast(params, __MODULE__.__schema__(:fields))
-          |> validate_required(__MODULE__.__schema__(:fields))
+          |> cast(params, non_embeds)
+          |> cast_embeds_if_any(embeds)
+          |> validate_required(non_embeds)
+        end
+
+        defp cast_embeds_if_any(changeset, []), do: changeset
+
+        defp cast_embeds_if_any(changeset, embeds) do
+          Enum.reduce(embeds, changeset, fn embed, acc ->
+            cast_embed(acc, embed,
+              with: fn
+                # this line casts params that are passed by caller in user input as structs
+                struct, params when is_struct(params) ->
+                  params.__struct__.changeset(params, %{})
+
+                # this line casts embedded struct for params that are maps (not structs)
+                struct, params ->
+                  struct.__struct__.changeset(struct, params)
+              end
+            )
+          end)
         end
       end
 
@@ -63,7 +92,48 @@ defmodule AIex.Aifunction do
   defmacro system_input(do: block) do
     quote do
       @input_section :system
-      unquote(block)
+
+      # Register that we have system input fields
+      Module.put_attribute(__MODULE__, :has_system_input, true)
+
+      defmodule SystemInput do
+        use Ecto.Schema
+        import Ecto.Changeset
+
+        @primary_key false
+        embedded_schema do
+          unquote(block)
+        end
+
+        def changeset(struct \\ %__MODULE__{}, params) do
+          fields = __MODULE__.__schema__(:fields)
+          non_embeds = fields -- __MODULE__.__schema__(:embeds)
+          embeds = __MODULE__.__schema__(:embeds)
+
+          struct
+          |> cast(params, non_embeds)
+          |> cast_embeds_if_any(embeds)
+          |> validate_required(non_embeds)
+        end
+
+        defp cast_embeds_if_any(changeset, []), do: changeset
+
+        defp cast_embeds_if_any(changeset, embeds) do
+          Enum.reduce(embeds, changeset, fn embed, acc ->
+            cast_embed(acc, embed,
+              with: fn
+                struct, params when is_struct(params) ->
+                  params.__struct__.changeset(params, %{})
+
+                struct, params ->
+                  struct.__struct__.changeset(struct, params)
+              end
+            )
+          end)
+        end
+      end
+
+      Module.put_attribute(__MODULE__, :system_input_schema_module, SystemInput)
     end
   end
 
@@ -85,9 +155,22 @@ defmodule AIex.Aifunction do
         end
 
         def changeset(struct \\ %__MODULE__{}, params) do
+          fields = __MODULE__.__schema__(:fields)
+          non_embeds = fields -- __MODULE__.__schema__(:embeds)
+          embeds = __MODULE__.__schema__(:embeds)
+
           struct
-          |> cast(params, __MODULE__.__schema__(:fields))
-          |> validate_required(__MODULE__.__schema__(:fields))
+          |> cast(params, non_embeds)
+          |> cast_embeds_if_any(embeds)
+          |> validate_required(non_embeds)
+        end
+
+        defp cast_embeds_if_any(changeset, []), do: changeset
+
+        defp cast_embeds_if_any(changeset, embeds) do
+          Enum.reduce(embeds, changeset, fn embed, acc ->
+            cast_embed(acc, embed)
+          end)
         end
       end
 
@@ -111,6 +194,8 @@ defmodule AIex.Aifunction do
     compiled = EEx.compile_string(template_str)
 
     quote do
+      Module.put_attribute(__MODULE__, :system_template_content, unquote(template_str))
+
       def render_system_template(assigns) do
         var!(assigns) = assigns
         unquote(compiled)
@@ -154,6 +239,10 @@ defmodule AIex.Aifunction do
         __MODULE__.UserInput.__schema__(:fields)
       end
 
+      def __schema__(:system_input_fields) do
+        __MODULE__.SystemInput.__schema__(:fields)
+      end
+
       def __schema__(:output_fields) do
         __MODULE__.Output.__schema__(:fields)
       end
@@ -162,9 +251,16 @@ defmodule AIex.Aifunction do
         __MODULE__.UserInput.changeset(params)
       end
 
+      def cast_system_input(params) do
+        case __MODULE__.SystemInput.changeset(params) do
+          %{valid?: true} = changeset -> {:ok, Ecto.Changeset.apply_changes(changeset)}
+          changeset -> {:error, changeset}
+        end
+      end
+
       def cast_output(params) do
         case __MODULE__.Output.changeset(params) do
-          %{valid?: true} = changeset -> {:ok, Ecto.Changeset.apply_changes(changeset)}
+          %{valid?: true} = changeset -> Ecto.Changeset.apply_action(changeset, :validate)
           changeset -> {:error, changeset}
         end
       end
@@ -172,7 +268,7 @@ defmodule AIex.Aifunction do
       def format_input(params) do
         case cast_input(params) do
           %{valid?: true} = changeset ->
-            {:ok, render_template(Ecto.Changeset.apply_changes(changeset))}
+            {:ok, render_template(Ecto.Changeset.apply_action(changeset, :validate))}
 
           changeset ->
             {:error, changeset}
