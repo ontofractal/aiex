@@ -30,6 +30,7 @@ defmodule AIex.IntegrationTest do
     end
 
     output do
+      field :id, :string
       field :sentiment, :string
       field :confidence, :float
     end
@@ -50,15 +51,15 @@ defmodule AIex.IntegrationTest do
 
       response =
         ai(SentimentAifn)
-        |> model(provider: "google", model: "google/gemini-flash-1.5")
+        |> model("google/gemini-pro-1.5")
         |> user_prompt(text: text)
-        |> AIex.OpenRouter.run(api_key: api_key, base_url: base_url)
-        |> IO.inspect()
+        |> TestAiRouter.run(api_key: api_key, base_url: base_url)
 
-      assert {:ok, %{valid?: true} = changeset} = response
-      assert changeset.changes.sentiment in ["positive", "negative", "neutral"]
-      assert is_float(changeset.changes.confidence)
-      assert changeset.changes.confidence >= 0.0 and changeset.changes.confidence <= 1.0
+      assert {:ok, output} = response
+      assert output.sentiment in ["positive", "negative", "neutral"]
+      assert is_binary(output.id)
+      assert is_float(output.confidence)
+      assert output.confidence >= 0.0 and output.confidence <= 1.0
     end
 
     @tag :integration
@@ -67,14 +68,14 @@ defmodule AIex.IntegrationTest do
 
       response =
         ai(SentimentAifn)
-        |> model(provider: "google", model: "google/gemini-flash-1.5")
+        |> model("google/gemini-pro-1.5")
         |> user_prompt(text: text)
-        |> AIex.OpenRouter.run(api_key: api_key, base_url: base_url)
+        |> TestAiRouter.run(api_key: api_key, base_url: base_url)
 
-      assert {:ok, %{valid?: true} = changeset} = response
-      assert changeset.changes.sentiment == "negative"
-      assert is_float(changeset.changes.confidence)
-      assert changeset.changes.confidence >= 0.0 and changeset.changes.confidence <= 1.0
+      assert {:ok, output} = response
+      assert output.sentiment == "negative"
+      assert is_float(output.confidence)
+      assert output.confidence >= 0.0 and output.confidence <= 1.0
     end
   end
 end
