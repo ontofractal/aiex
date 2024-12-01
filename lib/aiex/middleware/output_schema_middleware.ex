@@ -9,9 +9,9 @@ defmodule AIex.Middleware.OutputSchemaMiddleware do
   end
 
   def before_request(query, opts \\ [])
-  def before_request(%AIex.Query{aifunction: nil} = query, _opts ), do: query
+  def before_request(%AIex.Query{aifunction: nil} = query, _opts), do: query
 
-  def before_request(%AIex.Query{aifunction: aifunction, model: model} = query, _opts ) do
+  def before_request(%AIex.Query{aifunction: aifunction, model: model} = query, _opts) do
     with output_schema <- Module.concat([aifunction, Output]),
          typing_format <- get_typing_format(model),
          prompt <- AIex.build_json_prompt(output_schema, adapter: typing_format) do
@@ -28,16 +28,18 @@ defmodule AIex.Middleware.OutputSchemaMiddleware do
       # ["anthropic" | _] -> :typescript     # Claude prefers TypeScript
       # ["openai" | _] -> :json_schema       # GPT prefers JSON Schema
       # ["meta" | _] -> :python_type_hint    # Llama prefers Python
-      _ -> :typescript                     # Default to TypeScript
+      # Default to TypeScript
+      _ -> :typescript
     end
   end
+
   defp get_typing_format(_), do: :typescript
 
   defp append_schema_to_prompt(query, schema_prompt) do
     updated_system = """
     #{query.system_prompt}
 
-    The response MUST conform to this structured output schema:
+    Return valid JSON only that conforms to the following schema:
     #{schema_prompt}
     """
 

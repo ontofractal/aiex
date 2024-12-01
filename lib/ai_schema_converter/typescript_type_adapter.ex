@@ -34,7 +34,7 @@ defmodule AIex.AISchemaConverter.TypeScriptTypeAdapter do
 
   defp get_filtered_fields(schema, fields_to_exclude) do
     schema.__schema__(:fields)
-    |> Enum.reject(&(&1 == :id))
+    # |> Enum.reject(&(&1 == :id))
     |> Enum.reject(&Enum.member?(fields_to_exclude, &1))
   end
 
