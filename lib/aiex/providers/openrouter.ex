@@ -1,4 +1,4 @@
-defmodule AIex.OpenRouter do
+defmodule AIex.Providers.OpenRouterProvider do
   @moduledoc """
   OpenRouter API provider implementation.
   """

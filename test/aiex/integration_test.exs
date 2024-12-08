@@ -7,7 +7,7 @@ defmodule AIex.IntegrationTest do
   defmodule TestAiRouter do
     use AIex.AiRouter,
       adapter: AIex.Adapters.OpenAI,
-      provider: AIex.OpenRouter
+      provider: AIex.Providers.OpenRouterProvider
   end
 
   defmodule SentimentAifn do
@@ -36,7 +36,7 @@ defmodule AIex.IntegrationTest do
     end
   end
 
-  describe "OpenRouter integration" do
+  describe "OpenRouter integration with OpenAI" do
     setup do
       api_key = System.fetch_env!("OPENROUTER_API_KEY")
       base_url = System.get_env("OPENROUTER_URL", "https://openrouter.ai/api/v1")
@@ -45,7 +45,6 @@ defmodule AIex.IntegrationTest do
     end
 
     @tag :integration
-    @tag :this
     test "performs sentiment analysis via OpenRouter API", %{api_key: api_key, base_url: base_url} do
       text = "I absolutely love this product! It's amazing and has exceeded all my expectations!"
 
