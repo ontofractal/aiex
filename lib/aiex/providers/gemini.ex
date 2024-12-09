@@ -18,7 +18,6 @@ defmodule AIex.Providers.GeminiProvider do
            prepared_request.opts
          ) do
       {:ok, response} ->
-        dbg()
         {:ok, response}
 
       {:error, error} ->

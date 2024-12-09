@@ -15,40 +15,65 @@ defmodule AIex.Adapters.GeminiApiAdapter do
   """
   def prepare_query(%Query{model: model, messages: messages, aifunction: aifunction} = query)
       when is_binary(model) and is_list(messages) and is_atom(aifunction) do
-    dbg(query)
-
+    # Extract model name without the lab name
+    model = model_name_to_gemini_model_id(model)
     # Convert chat messages to Gemini format
     contents =
-      Enum.map(messages, fn
-        %{role: "user", content: content} -> %{role: "user", parts: [%{text: content}]}
-        %{role: "assistant", content: content} -> %{role: "model", parts: [%{text: content}]}
-      end)
-
-    # Build request with system instruction if present
-    request =
       if query.system_prompt != "" do
-        %{
-          system_instruction: %{
-            parts: [%{text: query.system_prompt}]
-          },
-          contents: contents
-        }
+        [
+          %{role: "model", parts: [%{text: query.system_prompt}]}
+          | Enum.map(messages, fn
+              %{role: "user", content: content} ->
+                %{role: "user", parts: [%{text: content}]}
+
+              %{role: "assistant", content: content} ->
+                %{role: "model", parts: [%{text: content}]}
+            end)
+        ]
       else
-        %{contents: contents}
+        Enum.map(messages, fn
+          %{role: "user", content: content} -> %{role: "user", parts: [%{text: content}]}
+          %{role: "assistant", content: content} -> %{role: "model", parts: [%{text: content}]}
+        end)
       end
 
-    dbg(request)
+    opts =
+      if query.output_schema do
+        [response_schema: query.output_schema]
+      else
+        []
+      end
+
+    # Build request
+    request = %{
+      model: model,
+      body: %{contents: contents},
+      opts: opts
+    }
+
     {:ok, request}
   end
 
   def prepare_query(_), do: {:error, :invalid_query}
 
   @doc """
+  Converts model names to the format expected by the Gemini API.
+  """
+  def model_name_to_gemini_model_id(model) do
+    [_, model] = model |> String.split("/")
+
+    model
+    |> String.split("-")
+    |> case do
+      ["gemini", submodel, version] -> "gemini-#{version}-#{submodel}"
+      [_, _, _] -> raise "Invalid model name: #{model}"
+    end
+  end
+
+  @doc """
   Helper to validate API key from options
   """
   def validate_api_key(opts) do
-    dbg(opts)
-
     case Keyword.fetch(opts, :api_key) do
       {:ok, key} when is_binary(key) and byte_size(key) > 0 -> {:ok, key}
       _ -> {:error, :missing_api_key}
@@ -63,29 +88,7 @@ defmodule AIex.Adapters.GeminiApiAdapter do
 
     case Keyword.get(opts, :base_url) do
       nil -> client
-      base_url -> GeminiAI.with_base_url(client, base_url)
-    end
-  end
-
-  def run(query, opts \\ []) do
-    with {:ok, api_key} <- validate_api_key(opts),
-         client <- create_client(api_key, opts),
-         {:ok, request} <- prepare_query(query),
-         {:ok, response} <- GeminiAI.generate_content(client, query.model, request) do
-      dbg(response)
-
-      transformed_response = %{
-        "choices" => [
-          %{
-            "message" => %{
-              "content" => GeminiAI.get_text(response)
-            }
-          }
-        ]
-      }
-
-      dbg(transformed_response)
-      {:ok, transformed_response}
+      base_url -> %{client | base_url: base_url}
     end
   end
 end
