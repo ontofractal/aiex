@@ -24,6 +24,23 @@ defmodule AIex.AiRouter do
     end
   end
 
+  def parse_response(
+        %GeminiAI.Response{
+          candidates: [
+            %GeminiAI.Response.Candidate{
+              content: %GeminiAI.Response.Content{
+                parts: [%GeminiAI.Response.Part{text: content} | _]
+              }
+            }
+            | _
+          ]
+        },
+        aifunction
+      )
+      when is_atom(aifunction) and is_map(content) do
+    aifunction.cast_output(content)
+  end
+
   def parse_response(_raw_response, _aifunction) do
     {:error, :invalid_response}
   end
@@ -47,15 +64,15 @@ defmodule AIex.AiRouter do
         query
         |> apply_system_prompt()
         |> validate_system_prompt()
-        |> apply_middleware(:before_request, pre_middlewares)
+        |> apply_middleware(:before_request, pre_middlewares, config: config)
         |> execute_request(config)
-        |> apply_middleware(:after_request, post_middlewares)
+        |> apply_middleware(:after_request, post_middlewares, config: config)
         |> handle_response()
       end
 
-      defp apply_middleware(data, phase, middlewares) do
+      defp apply_middleware(data, phase, middlewares, opts) do
         Enum.reduce(middlewares, data, fn middleware, acc ->
-          apply(middleware, phase, [data])
+          apply(middleware, phase, [data, opts])
         end)
       end
 
