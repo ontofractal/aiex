@@ -9,7 +9,8 @@ defmodule AIex.Query do
             aifunction: nil,
             openai_options: %{},
             system_prompt: "",
-            output_schema: nil
+            output_schema: nil,
+            user_inline_data: []
 
   @type message :: %{role: String.t(), content: String.t()}
   @type t :: %__MODULE__{
@@ -18,7 +19,8 @@ defmodule AIex.Query do
           aifunction: module() | nil,
           openai_options: map(),
           system_prompt: String.t() | nil,
-          output_schema: atom() | nil
+          output_schema: atom() | nil,
+          user_inline_data: keyword()
         }
 
   @doc """
@@ -107,6 +109,22 @@ defmodule AIex.Query do
   """
   def assistant_message(%__MODULE__{} = query, content) when is_binary(content) do
     add_message(query, "assistant", content)
+  end
+
+  @doc """
+  Adds inline data (like audio, images, etc) to the query.
+  Accepts a keyword list of data with format type => base64_encoded_data.
+
+  ## Examples
+
+      iex> ai()
+      |> model("google/gemini-flash-1.5")
+      |> user_prompt("What's in this audio?")
+      |> user_inline_data(ogg: "base64-encoded-audio-data")
+
+  """
+  def user_inline_data(%__MODULE__{} = query, inline_data) when is_list(inline_data) do
+    %__MODULE__{query | user_inline_data: query.user_inline_data ++ inline_data}
   end
 
   defp add_message(%__MODULE__{} = query, role, content) do
