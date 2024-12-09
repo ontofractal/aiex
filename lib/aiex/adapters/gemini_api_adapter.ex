@@ -15,27 +15,9 @@ defmodule AIex.Adapters.GeminiApiAdapter do
   """
   def prepare_query(%Query{model: model, messages: messages, aifunction: aifunction} = query)
       when is_binary(model) and is_list(messages) and is_atom(aifunction) do
-    # Extract model name without the lab name
     model = model_name_to_gemini_model_id(model)
-    # Convert chat messages to Gemini format
-    contents =
-      if query.system_prompt != "" do
-        [
-          %{role: "model", parts: [%{text: query.system_prompt}]}
-          | Enum.map(messages, fn
-              %{role: "user", content: content} ->
-                %{role: "user", parts: [%{text: content}]}
 
-              %{role: "assistant", content: content} ->
-                %{role: "model", parts: [%{text: content}]}
-            end)
-        ]
-      else
-        Enum.map(messages, fn
-          %{role: "user", content: content} -> %{role: "user", parts: [%{text: content}]}
-          %{role: "assistant", content: content} -> %{role: "model", parts: [%{text: content}]}
-        end)
-      end
+    contents = build_contents(query, messages)
 
     opts =
       if query.output_schema do
@@ -44,7 +26,6 @@ defmodule AIex.Adapters.GeminiApiAdapter do
         []
       end
 
-    # Build request
     request = %{
       model: model,
       body: %{contents: contents},
@@ -52,6 +33,85 @@ defmodule AIex.Adapters.GeminiApiAdapter do
     }
 
     {:ok, request}
+  end
+
+  defp build_contents(query, messages) do
+    base_contents =
+      if query.system_prompt != "" do
+        [%{role: "model", parts: [%{text: query.system_prompt}]}]
+      else
+        []
+      end
+
+    contents =
+      base_contents ++
+        Enum.map(messages, fn
+          %{role: "user", content: content} ->
+            parts = [%{text: content}]
+
+            parts =
+              if Map.has_key?(query, :user_inline_data) do
+                parts ++ build_inline_data_parts(query.user_inline_data)
+              else
+                parts
+              end
+
+            %{role: "user", parts: parts}
+
+          %{role: "assistant", content: content} ->
+            %{role: "model", parts: [%{text: content}]}
+        end)
+
+    contents
+  end
+
+  defp build_inline_data_parts(inline_data) do
+    Enum.map(inline_data, fn {type, data} ->
+      case type do
+        :ogg ->
+          %{
+            inline_data: %{
+              mime_type: "audio/ogg",
+              data: data
+            }
+          }
+
+        :mp3 ->
+          %{
+            inline_data: %{
+              mime_type: "audio/mp3",
+              data: data
+            }
+          }
+
+        :wav ->
+          %{
+            inline_data: %{
+              mime_type: "audio/wav",
+              data: data
+            }
+          }
+
+        :aac ->
+          %{
+            inline_data: %{
+              mime_type: "audio/aac",
+              data: data
+            }
+          }
+
+        :flac ->
+          %{
+            inline_data: %{
+              mime_type: "audio/flac",
+              data: data
+            }
+          }
+
+        _ ->
+          raise "Unsupported inline data type: #{type}"
+      end
+    end)
   end
 
   def prepare_query(_), do: {:error, :invalid_query}
