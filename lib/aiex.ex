@@ -6,12 +6,13 @@ defmodule AIex do
   alias AIex.AISchemaConverter.{
     JSONSchemaAdapter,
     PythonTypeHintAdapter,
-    TypeScriptTypeAdapter
+    TypeScriptTypeAdapter,
+    OpenAPIAdapter
   }
 
   @schema_options [
     adapter: [
-      type: {:in, [:json_schema, :python_type_hint, :typescript]},
+      type: {:in, [:json_schema, :python_type_hint, :typescript, :openapi]},
       required: true
     ],
     format: [
@@ -41,18 +42,18 @@ defmodule AIex do
       "class Post:\\n    id: int\\n    title: str\\n    content: str"
 
   """
-  @spec build_json_prompt(%{__meta__: any()}, keyword()) :: String.t()
-  def build_json_prompt(schema, opts \\ []) when is_atom(schema) do
+  @spec format_output_schema(%{__meta__: any()}, keyword()) :: String.t()
+  def format_output_schema(schema, opts \\ []) when is_atom(schema) do
     case NimbleOptions.validate(opts, @schema_options) do
       {:ok, valid_opts} ->
-        do_build_json_prompt(schema, valid_opts)
+        do_format_output_schema(schema, valid_opts)
 
       {:error, error} ->
         raise ArgumentError, message: Exception.message(error)
     end
   end
 
-  defp do_build_json_prompt(schema, opts) do
+  defp do_format_output_schema(schema, opts) do
     case opts[:adapter] do
       :json_schema ->
         schema
@@ -64,6 +65,9 @@ defmodule AIex do
 
       :typescript ->
         TypeScriptTypeAdapter.convert(schema)
+
+      :openapi ->
+        OpenAPIAdapter.convert(schema)
     end
   end
 end
