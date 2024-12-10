@@ -6,7 +6,12 @@ defmodule AIex.AISchemaConverter do
   Python type hint annotations, and TypeScript type declarations.
   """
 
-  alias AIex.AISchemaConverter.{JSONSchemaAdapter, PythonTypeHintAdapter, TypeScriptTypeAdapter}
+  alias AIex.AISchemaConverter.{
+    JSONSchemaAdapter,
+    PythonTypeHintAdapter,
+    TypeScriptTypeAdapter,
+    OpenAPIAdapter
+  }
 
   @doc """
   Converts an Ecto schema to JSON schema.
@@ -59,5 +64,33 @@ defmodule AIex.AISchemaConverter do
   @spec to_typescript_type(module()) :: String.t()
   def to_typescript_type(schema) do
     TypeScriptTypeAdapter.convert(schema)
+  end
+
+  @doc """
+  Converts an Ecto schema to OpenAPI v3 schema.
+
+  ## Examples
+
+      iex> schema = %MyApp.User{name: "John Doe", age: 30}
+      iex> AISchemaConverter.to_openapi_schema(schema)
+      %{
+        "type" => "object",
+        "properties" => %{
+          "name" => %{"type" => "string"},
+          "age" => %{"type" => "integer", "format" => "int64"},
+          "height" => %{"type" => "number", "format" => "float"},
+          "is_active" => %{"type" => "boolean"},
+          "tags" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"}
+          }
+        },
+        "required" => ["name", "age", "height", "is_active", "tags"]
+      }
+
+  """
+  @spec to_openapi_schema(module()) :: map()
+  def to_openapi_schema(schema) do
+    OpenAPIAdapter.convert(schema)
   end
 end
