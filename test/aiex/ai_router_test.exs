@@ -6,7 +6,7 @@ defmodule Aiex.AiRouterTest do
     defmodule TestAiRouter do
       use AIex.AiRouter,
         adapter: AIex.Adapters.OpenAI,
-        provider: AIex.OpenRouter
+        provider: AIex.Providers.OpenRouterProvider
     end
 
     test "basic usage" do

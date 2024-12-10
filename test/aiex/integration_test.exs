@@ -15,7 +15,7 @@ defmodule AIex.IntegrationTest do
 
     system_template do
       ~H"""
-      Analyze the sentiment of the following text and respond with a JSON object containing sentiment (positive, negative, or neutral) and confidence (float between 0 and 1).
+      Transcribe the audio.
       """
     end
 
@@ -44,7 +44,6 @@ defmodule AIex.IntegrationTest do
       {:ok, api_key: api_key, base_url: base_url}
     end
 
-    @tag :integration
     test "performs sentiment analysis via OpenRouter API", %{api_key: api_key, base_url: base_url} do
       text = "I absolutely love this product! It's amazing and has exceeded all my expectations!"
 
@@ -61,7 +60,6 @@ defmodule AIex.IntegrationTest do
       assert output.confidence >= 0.0 and output.confidence <= 1.0
     end
 
-    @tag :integration
     test "handles negative sentiment via OpenRouter API", %{api_key: api_key, base_url: base_url} do
       text = "This is terrible! I hate it and will never use it again!"
 
@@ -94,8 +92,6 @@ defmodule AIex.IntegrationTest do
       {:ok, api_key: api_key, base_url: base_url}
     end
 
-    @tag :integration
-    @tag :this
     test "performs sentiment analysis via Gemini API", %{api_key: api_key, base_url: base_url} do
       text = "I absolutely love this product! It's amazing and has exceeded all my expectations!"
 
@@ -112,7 +108,6 @@ defmodule AIex.IntegrationTest do
       assert output.confidence >= 0.0 and output.confidence <= 1.0
     end
 
-    @tag :integration
     test "handles negative sentiment via Gemini API", %{api_key: api_key, base_url: base_url} do
       text = "This is terrible! I hate it and will never use it again!"
 
@@ -126,6 +121,57 @@ defmodule AIex.IntegrationTest do
       assert output.sentiment == "negative"
       assert is_float(output.confidence)
       assert output.confidence >= 0.0 and output.confidence <= 1.0
+    end
+  end
+
+  describe "audio analysis" do
+    defmodule AudioAiFn do
+      use AIex.Aifunction
+
+      system_template do
+        ~H"""
+        Transcribe the audio.
+        """
+      end
+
+      user_input do
+        field :text, :string
+      end
+
+      user_template do
+        ~H"""
+        Text: <%= @text %>
+        """
+      end
+
+      output do
+        field :text, :string
+      end
+    end
+
+    setup do
+      api_key = System.fetch_env!("GEMINI_API_KEY")
+
+      {:ok, api_key: api_key}
+    end
+
+    @tag :this
+    test "performs audio analysis via Gemini API", %{api_key: api_key} do
+      text = "Be accurate with your responses."
+      audio_file = "test/fixtures/example.ogg"
+      audio_data = File.read!(audio_file) |> Base.encode64()
+
+      response =
+        ai(AudioAiFn)
+        |> model("google/gemini-flash-1.5")
+        |> user_prompt(text: text)
+        |> user_inline_data(ogg: audio_data)
+        |> TestGeminiAiRouter.run(api_key: api_key)
+
+      assert {:ok, output} = response
+
+      assert output.text ==
+               "This is an example sound file in Ogg Vorbis format from Wikipedia, the free encyclopedia."
     end
   end
 end
