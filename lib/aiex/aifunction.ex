@@ -205,7 +205,10 @@ defmodule AIex.Aifunction do
       def render_system_template(assigns) do
         raw_assigns =
           for {k, v} <- assigns, into: %{} do
-            {k, Phoenix.HTML.raw(v)}
+            cond do
+              is_binary(v) -> {k, Phoenix.HTML.raw(v)}
+              true -> {k, v}
+            end
           end
 
         var!(assigns) = raw_assigns
@@ -233,7 +236,10 @@ defmodule AIex.Aifunction do
       def render_user_template(assigns) do
         raw_assigns =
           for {k, v} <- assigns, into: %{} do
-            {k, Phoenix.HTML.raw(v)}
+            cond do
+              is_binary(v) -> {k, Phoenix.HTML.raw(v)}
+              true -> {k, v}
+            end
           end
 
         var!(assigns) = raw_assigns
