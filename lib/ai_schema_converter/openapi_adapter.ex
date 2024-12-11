@@ -44,19 +44,19 @@ defmodule AIex.AISchemaConverter.OpenAPIAdapter do
   end
 
   defp field_to_openapi_schema(:date, _, _) do
-    %{"type" => "string", "format" => "date"}
+    %{"type" => "string"}
   end
 
   defp field_to_openapi_schema(:time, _, _) do
-    %{"type" => "string", "format" => "time"}
+    %{"type" => "string"}
   end
 
   defp field_to_openapi_schema(:naive_datetime, _, _) do
-    %{"type" => "string", "format" => "date-time"}
+    %{"type" => "string"}
   end
 
   defp field_to_openapi_schema(:utc_datetime, _, _) do
-    %{"type" => "string", "format" => "date-time"}
+    %{"type" => "string"}
   end
 
   defp field_to_openapi_schema({:array, type}, schema, field) do
