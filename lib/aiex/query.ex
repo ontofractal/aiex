@@ -53,7 +53,7 @@ defmodule AIex.Query do
 
   def system_prompt(%__MODULE__{aifunction: aifunction} = query, assigns)
       when not is_nil(aifunction) do
-    content = apply(aifunction, :render_system_template, [assigns])
+    content = apply(aifunction, :render_system_template, [assigns |> Enum.into(%{})])
     %__MODULE__{query | system_prompt: content}
   end
 
@@ -87,7 +87,7 @@ defmodule AIex.Query do
 
         content =
           apply(aifunction, :render_user_template, [
-            Enum.to_list(Map.from_struct(validated_input))
+            Map.from_struct(validated_input)
           ])
 
         add_message(query, "user", content)

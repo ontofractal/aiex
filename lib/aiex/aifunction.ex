@@ -191,14 +191,28 @@ defmodule AIex.Aifunction do
   Defines the system template using HEEx syntax with ~H sigil.
   """
   defmacro system_template(do: {:sigil_H, _meta, [{:<<>>, _, [template_str]}, []]}) do
-    compiled = EEx.compile_string(template_str)
+    compiled =
+      EEx.compile_string(template_str,
+        engine: Phoenix.LiveView.TagEngine,
+        caller: __CALLER__,
+        tag_handler: Phoenix.LiveView.HTMLEngine,
+        source: __CALLER__.file
+      )
 
     quote do
       Module.put_attribute(__MODULE__, :system_template_content, unquote(template_str))
 
       def render_system_template(assigns) do
-        var!(assigns) = assigns
+        raw_assigns =
+          for {k, v} <- assigns, into: %{} do
+            {k, Phoenix.HTML.raw(v)}
+          end
+
+        var!(assigns) = raw_assigns
+
         unquote(compiled)
+        |> Phoenix.HTML.html_escape()
+        |> Phoenix.HTML.safe_to_string()
       end
     end
   end
@@ -207,12 +221,26 @@ defmodule AIex.Aifunction do
   Defines the user template using HEEx syntax with ~H sigil.
   """
   defmacro user_template(do: {:sigil_H, _meta, [{:<<>>, _, [template_str]}, []]}) do
-    compiled = EEx.compile_string(template_str)
+    compiled =
+      EEx.compile_string(template_str,
+        engine: Phoenix.LiveView.TagEngine,
+        caller: __CALLER__,
+        tag_handler: Phoenix.LiveView.HTMLEngine,
+        source: __CALLER__.file
+      )
 
     quote do
       def render_user_template(assigns) do
-        var!(assigns) = assigns
+        raw_assigns =
+          for {k, v} <- assigns, into: %{} do
+            {k, Phoenix.HTML.raw(v)}
+          end
+
+        var!(assigns) = raw_assigns
+
         unquote(compiled)
+        |> Phoenix.HTML.html_escape()
+        |> Phoenix.HTML.safe_to_string()
       end
     end
   end

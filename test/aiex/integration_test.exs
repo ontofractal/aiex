@@ -13,9 +13,13 @@ defmodule AIex.IntegrationTest do
   defmodule SentimentAifn do
     use AIex.Aifunction
 
+    system_input do
+      field :instruction, :string
+    end
+
     system_template do
       ~H"""
-      Transcribe the audio.
+      Instruction: {@instruction}
       """
     end
 
@@ -25,7 +29,7 @@ defmodule AIex.IntegrationTest do
 
     user_template do
       ~H"""
-      Text: <%= @text %>
+      Text: {@text}
       """
     end
 
@@ -44,6 +48,7 @@ defmodule AIex.IntegrationTest do
       {:ok, api_key: api_key, base_url: base_url}
     end
 
+    @tag :this
     test "performs sentiment analysis via OpenRouter API", %{api_key: api_key, base_url: base_url} do
       text = "I absolutely love this product! It's amazing and has exceeded all my expectations!"
 
@@ -51,10 +56,11 @@ defmodule AIex.IntegrationTest do
         ai(SentimentAifn)
         |> model("google/gemini-pro-1.5")
         |> user_prompt(text: text)
+        |> system_prompt(instruction: "Perform sentiment analysis on the given text.")
         |> TestAiRouter.run(api_key: api_key, base_url: base_url)
 
       assert {:ok, output} = response
-      assert output.sentiment in ["positive", "negative", "neutral"]
+      assert output.sentiment in ["positive"]
       assert is_binary(output.id)
       assert is_float(output.confidence)
       assert output.confidence >= 0.0 and output.confidence <= 1.0
@@ -67,6 +73,7 @@ defmodule AIex.IntegrationTest do
         ai(SentimentAifn)
         |> model("google/gemini-pro-1.5")
         |> user_prompt(text: text)
+        |> system_prompt(instruction: "Perform sentiment analysis on the given text.")
         |> TestAiRouter.run(api_key: api_key, base_url: base_url)
 
       assert {:ok, output} = response
@@ -155,7 +162,6 @@ defmodule AIex.IntegrationTest do
       {:ok, api_key: api_key}
     end
 
-    @tag :this
     test "performs audio analysis via Gemini API", %{api_key: api_key} do
       text = "Be accurate with your responses."
       audio_file = "test/fixtures/example.ogg"
