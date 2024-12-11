@@ -125,6 +125,7 @@ defmodule AIex.Adapters.GeminiApiAdapter do
     model
     |> String.split("-")
     |> case do
+      ["gemini", submodel, version, "exp"] -> "gemini-#{version}-#{submodel}-exp"
       ["gemini", submodel, version] -> "gemini-#{version}-#{submodel}"
       [_, _, _] -> raise "Invalid model name: #{model}"
     end
