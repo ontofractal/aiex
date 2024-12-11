@@ -66,6 +66,10 @@ defmodule AIex.AISchemaConverter.OpenAPIAdapter do
     }
   end
 
+  defp field_to_openapi_schema(:binary_id, _, _) do
+    %{"type" => "string"}
+  end
+
   defp field_to_openapi_schema(:map, _, _) do
     %{
       "type" => "object",
