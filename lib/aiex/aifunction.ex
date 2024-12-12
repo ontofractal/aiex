@@ -187,22 +187,23 @@ defmodule AIex.Aifunction do
     end
   end
 
-  @doc """
-  Defines the system template using HEEx syntax with ~H sigil.
-  """
-  defmacro system_template(do: {:sigil_H, _meta, [{:<<>>, _, [template_str]}, []]}) do
+  defp define_template(type, template_str, caller) do
     compiled =
       EEx.compile_string(template_str,
         engine: Phoenix.LiveView.TagEngine,
-        caller: __CALLER__,
+        caller: caller,
         tag_handler: Phoenix.LiveView.HTMLEngine,
-        source: __CALLER__.file
+        source: caller.file
       )
 
     quote do
-      Module.put_attribute(__MODULE__, :system_template_content, unquote(template_str))
+      Module.put_attribute(
+        __MODULE__,
+        unquote(:"#{type}_template_content"),
+        unquote(template_str)
+      )
 
-      def render_system_template(assigns) do
+      def unquote(:"render_#{type}_template")(assigns) do
         raw_assigns =
           for {k, v} <- assigns, into: %{} do
             cond do
@@ -221,34 +222,17 @@ defmodule AIex.Aifunction do
   end
 
   @doc """
+  Defines the system template using HEEx syntax with ~H sigil.
+  """
+  defmacro system_template(do: {:sigil_H, _meta, [{:<<>>, _, [template_str]}, []]}) do
+    define_template(:system, template_str, __CALLER__)
+  end
+
+  @doc """
   Defines the user template using HEEx syntax with ~H sigil.
   """
   defmacro user_template(do: {:sigil_H, _meta, [{:<<>>, _, [template_str]}, []]}) do
-    compiled =
-      EEx.compile_string(template_str,
-        engine: Phoenix.LiveView.TagEngine,
-        caller: __CALLER__,
-        tag_handler: Phoenix.LiveView.HTMLEngine,
-        source: __CALLER__.file
-      )
-
-    quote do
-      def render_user_template(assigns) do
-        raw_assigns =
-          for {k, v} <- assigns, into: %{} do
-            cond do
-              is_binary(v) -> {k, Phoenix.HTML.raw(v)}
-              true -> {k, v}
-            end
-          end
-
-        var!(assigns) = raw_assigns
-
-        unquote(compiled)
-        |> Phoenix.HTML.html_escape()
-        |> Phoenix.HTML.safe_to_string()
-      end
-    end
+    define_template(:user, template_str, __CALLER__)
   end
 
   @doc """
